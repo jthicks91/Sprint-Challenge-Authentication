@@ -7,8 +7,8 @@ const { authenticate } = require("../auth/authenticate");
 const db = require("../dbMethods");
 // const db = require("knex")(require("../knexfile").development);
 
-const jwtKey = process.env.JWT_KEY;
-// const jwtKey = require("../secrets/keys").jwtKey;
+// const jwtKey = process.env.JWT_KEY;
+const jwtKey = require("../secrets/keys").jwtKey;
 
 module.exports = server => {
   server.post("/api/register", register);
@@ -16,26 +16,18 @@ module.exports = server => {
   server.get("/api/jokes", authenticate, getJokes);
 };
 
-// function generateToken(user) {
-//   const payload = {
-//     username: user.username
-//   };
-//   const secret = jwtKey;
-//   const options = {
-//     expiresIn: "1h"
-//   };
-//   return jwt.sign(payload, secret, options);
-// }
-
 function generateToken(user) {
+  console.log("before the payload");
   const payload = {
     subject: user.id,
     username: user.username
   };
+  console.log("after the payload");
 
   const options = {
     expiresIn: "1d"
   };
+  console.log("after the options", jwtKey);
 
   return jwt.sign(payload, jwtKey, options);
 }
@@ -63,10 +55,11 @@ async function login(req, res) {
   let { username, password } = req.body;
   try {
     const user = await db.findByName(username);
-    console.log(user);
+    console.log("Did we find a user?", user);
     if (user && bcrypt.compareSync(password, user.password)) {
+      console.log("We're in the IF Block");
       const token = generateToken(user);
-      console.log(token);
+      console.log("Token", token);
       res.status(200).json({
         message: `Welcome ${user.username}!, have a token...`,
         token
@@ -75,6 +68,7 @@ async function login(req, res) {
       res.status(401).json({ message: "Invalid Credentials" });
     }
   } catch (err) {
+    console.log("You fucked up");
     res.status(500).json(err);
   }
 }
